@@ -15,7 +15,7 @@ exports.notifyRequest = async (req, res) => {
         const checkQuery = `
             SELECT * FROM public.tbl_notify_requests 
             WHERE user_id = $1 AND product_id = $2 AND COALESCE(gram_id, 0) = COALESCE($3, 0) 
-            AND status = 'pending'
+            AND status = '0'
         `;
         const checkResult = await pool.query(checkQuery, [user_id, product_id, gram_id]);
 
@@ -29,7 +29,7 @@ exports.notifyRequest = async (req, res) => {
         // Insert notify request
         await pool.query(
             `INSERT INTO public.tbl_notify_requests (user_id, product_id, gram_id,status) VALUES ($1, $2, $3,$4)`,
-            [user_id, product_id, gram_id, 'pending']
+            [user_id, product_id, gram_id, '0']
         );
 
         res.status(200).json({
@@ -103,6 +103,7 @@ exports.getUserNotifications = async (req, res) => {
     try {
         const result = await pool.query(`
       SELECT 
+       nr.notify_id,
         nr.product_id,
         nr.gram_id,
         p.product_name,
@@ -162,4 +163,42 @@ exports.updatenotifystatus = async (req, res) => {
     }
 }
 
+exports.deletenotify = async (req, res) => {
+    const { notify_id } = req.body;
+
+    if (!notify_id) {
+        return res.status(401).json({
+            statusCode: 401,
+            message: 'Notify ID is required'
+        });
+    }
+
+    try {
+        // Delete only if status = 1
+        const result = await pool.query(
+            `DELETE FROM public.tbl_notify_requests 
+             WHERE notify_id=$1 AND status=1`, 
+            [notify_id]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(400).json({
+                statusCode: 400,
+                message: "Cannot delete. Either notification doesn't exist or status is not 1"
+            });
+        }
+
+        return res.status(200).json({
+            statusCode: 200,
+            message: 'Deleted Successfully'
+        });
+
+    } catch (error) {
+        console.error("Delete Error:", error);
+        return res.status(500).json({
+            statusCode: 500,
+            message: 'Internal Server Error'
+        });
+    }
+};
 
