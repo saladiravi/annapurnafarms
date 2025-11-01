@@ -10,7 +10,9 @@ const couponRoutes=require('./routes/couponroutes');
 const carouselRoutes=require('./routes/carouselroutes');
 const cartRoutes=require('./routes/cartroutes');
 const orderRoutes=require('./routes/orderroutes');
-const dashboardRoutes=require('./routes/dashboardroutes')
+const dashboardRoutes=require('./routes/dashboardroutes');
+const notify=require('./routes/notifyroutes');
+
 const app = express();
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
@@ -26,6 +28,8 @@ app.use('/carousel',carouselRoutes);
 app.use('/cart',cartRoutes);
 app.use('/order',orderRoutes);
 app.use('/dashboard',dashboardRoutes);
+app.use('/notify',notify);
+
 
 
 
