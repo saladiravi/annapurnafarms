@@ -140,31 +140,9 @@ exports.getUserNotifications = async (req, res) => {
 };
 
 
-exports.updatenotifystatus = async (req, res) => {
-    const { notify_id } = req.body
-    if (!notify_id) {
-        return res.status(401).json({
-            statusCode: 401,
-            message: 'notify id is required'
-        })
-    }
-    try {
 
-        const result = await pool.query(`UPDATE public.tbl_notify_requests SET status=1 WHERE notify_id=$1`, [notify_id]);
-        return res.status(200).json({
-            statusCode: 200,
-            message: 'Updated Sucessfully'
-        })
-    } catch (error) {
-        return res.status(500).json({
-            statusCode: 500,
-            message: 'Internal Server Error'
-        })
-    }
-}
-
-exports.deletenotify = async (req, res) => {
-    const { notify_id } = req.body;
+exports.updateAndDeleteNotify = async (req, res) => {
+    let { notify_id } = req.body;
 
     if (!notify_id) {
         return res.status(401).json({
@@ -173,32 +151,48 @@ exports.deletenotify = async (req, res) => {
         });
     }
 
+    // Ensure notify_id is number
+    notify_id = Number(notify_id);
+    if (isNaN(notify_id)) {
+        return res.status(400).json({
+            statusCode: 400,
+            message: "notify_id must be a number"
+        });
+    }
+
     try {
-        // Delete only if status = 1
-        const result = await pool.query(
-            `DELETE FROM public.tbl_notify_requests 
-             WHERE notify_id=$1 AND status=1`, 
+        // 1️⃣ Update status to 1
+        const updateResult = await pool.query(
+            `UPDATE public.tbl_notify_requests 
+             SET status = 1 
+             WHERE notify_id = $1`,
             [notify_id]
         );
 
-        if (result.rowCount === 0) {
+        if (updateResult.rowCount === 0) {
             return res.status(400).json({
                 statusCode: 400,
-                message: "Cannot delete. Either notification doesn't exist or status is not 1"
+                message: "Notify record not found"
             });
         }
 
+        // 2️⃣ Delete record after update
+        await pool.query(
+            `DELETE FROM public.tbl_notify_requests 
+             WHERE notify_id = $1 AND status = 1`,
+            [notify_id]
+        );
+
         return res.status(200).json({
             statusCode: 200,
-            message: 'Deleted Successfully'
+            message: "Notification updated successfully"
         });
 
     } catch (error) {
-        console.error("Delete Error:", error);
+        console.error("Error:", error);
         return res.status(500).json({
             statusCode: 500,
             message: 'Internal Server Error'
         });
     }
 };
-
